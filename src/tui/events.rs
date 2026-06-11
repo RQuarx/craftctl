@@ -8,13 +8,13 @@ use std::{
 
 use crossterm::event::{self, Event, KeyEventKind, MouseButton, MouseEventKind};
 
-use crate::{app::App, result::Result, tui};
+use crate::{result::Result, tui, tui::state::TuiState};
 
 use super::terminal::AppTerminal;
 
 pub async fn run(
     terminal: &mut AppTerminal,
-    app: &mut App,
+    state: &mut TuiState,
     should_quit: Arc<AtomicBool>,
 ) -> Result<()> {
     drain_startup_events()?;
@@ -24,12 +24,12 @@ pub async fn run(
             break;
         }
 
-        terminal.draw(|frame| tui::screens::login::draw(frame, app))?;
+        terminal.draw(|frame| tui::screens::login::draw(frame, state))?;
 
         if event::poll(Duration::from_millis(80))? {
             match event::read()? {
                 Event::Key(key) if key.kind == KeyEventKind::Press => {
-                    if app.handle_key(key).await {
+                    if state.login.handle_key(key).await {
                         break;
                     }
                 }
@@ -38,14 +38,14 @@ pub async fn run(
                     if let Some(target) =
                         tui::screens::login::hit_test(area, mouse.column, mouse.row)
                     {
-                        app.handle_click(target).await;
+                        state.login.handle_click(target).await;
                     }
                 }
                 _ => {}
             }
         }
 
-        app.tick().await;
+        state.tick().await;
     }
 
     Ok(())

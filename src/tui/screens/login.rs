@@ -7,18 +7,11 @@ use ratatui::{
 };
 
 use crate::{
-    app::App,
-    auth::AccountKind,
-    tui::{LoginMode, LoginPhase, theme},
+    auth::{AccountKind, LoginClickTarget, LoginMode, LoginPhase},
+    tui::{state::TuiState, theme},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoginClickTarget {
-    Microsoft,
-    Offline,
-}
-
-pub fn draw(frame: &mut Frame<'_>, app: &App) {
+pub fn draw(frame: &mut Frame<'_>, state: &TuiState) {
     let area = frame.area();
     frame.render_widget(Clear, area);
     frame.render_widget(Block::default().style(theme::background()), area);
@@ -47,15 +40,15 @@ pub fn draw(frame: &mut Frame<'_>, app: &App) {
         .split(inner);
 
     draw_title(frame, rows[0]);
-    draw_modes(frame, rows[1], app.mode);
+    draw_modes(frame, rows[1], state.login.mode());
 
-    match app.phase {
-        LoginPhase::Choosing => draw_choice(frame, rows[2], app),
-        LoginPhase::WaitingForMicrosoft => draw_waiting(frame, rows[2], app),
-        LoginPhase::Complete => draw_complete(frame, rows[2], app),
+    match state.login.phase() {
+        LoginPhase::Choosing => draw_choice(frame, rows[2], state),
+        LoginPhase::WaitingForMicrosoft => draw_waiting(frame, rows[2], state),
+        LoginPhase::Complete => draw_complete(frame, rows[2], state),
     }
 
-    draw_status(frame, rows[3], app);
+    draw_status(frame, rows[3], state);
 }
 
 pub fn hit_test(area: Rect, column: u16, row: u16) -> Option<LoginClickTarget> {
@@ -114,8 +107,8 @@ fn draw_mode(frame: &mut Frame<'_>, area: Rect, label: &str, selected: bool) {
     );
 }
 
-fn draw_choice(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    match app.mode {
+fn draw_choice(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
+    match state.login.mode() {
         LoginMode::Microsoft => draw_center_message(
             frame,
             area,
@@ -125,18 +118,19 @@ fn draw_choice(frame: &mut Frame<'_>, area: Rect, app: &App) {
                 Line::from(Span::styled("Press Enter to get a code", theme::muted())),
             ],
         ),
-        LoginMode::Offline => draw_offline(frame, area, app),
+        LoginMode::Offline => draw_offline(frame, area, state),
     }
 }
 
-fn draw_offline(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    let input = if app.username.is_empty() {
+fn draw_offline(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
+    let username = state.login.username();
+    let input = if username.is_empty() {
         "username".to_string()
     } else {
-        format!("{}_", app.username)
+        format!("{username}_")
     };
 
-    let input_style = if app.username.is_empty() {
+    let input_style = if username.is_empty() {
         theme::muted()
     } else {
         theme::primary()
@@ -160,8 +154,8 @@ fn draw_offline(frame: &mut Frame<'_>, area: Rect, app: &App) {
     );
 }
 
-fn draw_waiting(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    let Some(login) = app.microsoft_login() else {
+fn draw_waiting(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
+    let Some(login) = state.login.microsoft_login() else {
         return;
     };
 
@@ -184,8 +178,8 @@ fn draw_waiting(frame: &mut Frame<'_>, area: Rect, app: &App) {
     );
 }
 
-fn draw_complete(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    let Some(account) = app.account.as_ref() else {
+fn draw_complete(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
+    let Some(account) = state.login.account() else {
         return;
     };
 
@@ -224,8 +218,8 @@ fn draw_center_message(frame: &mut Frame<'_>, area: Rect, lines: &[Line<'_>]) {
     );
 }
 
-fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    let line = if let Some(error) = app.error.as_ref() {
+fn draw_status(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
+    let line = if let Some(error) = state.login.error() {
         Line::from(Span::styled(short_error(error), theme::error()))
     } else {
         Line::from(vec![
