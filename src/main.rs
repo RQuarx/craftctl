@@ -1,6 +1,7 @@
 mod app;
 mod auth;
 mod error;
+mod http;
 mod mods;
 mod result;
 mod tui;

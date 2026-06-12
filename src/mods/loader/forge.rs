@@ -5,7 +5,7 @@ use zip::ZipArchive;
 
 use crate::mods::{
     ModMetadata,
-    loaders::{ModLoader, ModLoaderError},
+    loader::{ModLoader, ModLoaderError},
 };
 
 #[derive(Debug, Deserialize)]
@@ -42,7 +42,7 @@ pub struct Forge;
 
 impl ModLoader for Forge {
     fn name() -> &'static str {
-        "forge"
+        "Forge"
     }
 
     fn get_mod_metadata(jar: &std::path::Path) -> Result<ModMetadata, ModLoaderError> {

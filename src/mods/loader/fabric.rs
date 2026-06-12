@@ -3,7 +3,7 @@ use std::{fs::File, io::Read, path::Path};
 use serde::Deserialize;
 use zip::ZipArchive;
 
-use crate::mods::{ModMetadata, loaders::ModLoaderError};
+use crate::mods::{ModMetadata, loader::ModLoaderError};
 
 #[derive(Debug, Deserialize)]
 struct FabricModJson {
@@ -19,7 +19,7 @@ pub struct Fabric;
 
 impl super::ModLoader for Fabric {
     fn name() -> &'static str {
-        "fabric"
+        "Fabric"
     }
 
     fn get_mod_metadata(jar: &Path) -> Result<ModMetadata, ModLoaderError> {
