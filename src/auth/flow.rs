@@ -83,7 +83,7 @@ impl<'a> LoginFlow<'a> {
         self.error.as_deref()
     }
 
-    pub fn microsoft_login(&self) -> Option<&MicrosoftLogin> {
+    pub fn microsoft_login(&self) -> Option<&MicrosoftLogin<'_>> {
         self.login.as_ref()
     }
 

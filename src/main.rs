@@ -1,8 +1,10 @@
 mod app;
 mod auth;
+mod download;
 mod error;
 mod http;
 mod mods;
+mod provider;
 mod result;
 mod tui;
 
