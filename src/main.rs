@@ -1,9 +1,9 @@
 mod app;
 mod auth;
 mod error;
+mod mods;
 mod result;
 mod tui;
-mod mods;
 
 #[tokio::main]
 async fn main() -> result::Result<()> {

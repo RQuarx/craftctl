@@ -10,18 +10,19 @@ struct FabricModJson {
     id: String,
     version: String,
     name: Option<String>,
+    description: Option<String>
 }
 
 
-/// A struct representing the Fabric modloader, used to load fabric mods metadata.
+/// A struct representing the Fabric modloader, used to load fabric mod'ss metadata.
 pub struct Fabric;
 
 impl super::ModLoader for Fabric {
-    fn name(&self) -> &str {
+    fn name() -> &'static str {
         "fabric"
     }
 
-    fn get_mod_metadata(&self, jar: &Path) -> Result<ModMetadata, ModLoaderError> {
+    fn get_mod_metadata(jar: &Path) -> Result<ModMetadata, ModLoaderError> {
         let file = File::open(jar).map_err(ModLoaderError::Io)?;
         let mut archive =
             ZipArchive::new(file).map_err(|e| ModLoaderError::InvalidFormat(e.to_string()))?;
@@ -33,7 +34,7 @@ impl super::ModLoader for Fabric {
         let mut contents = String::new();
         mod_json
             .read_to_string(&mut contents)
-            .map_err(|e| ModLoaderError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| ModLoaderError::Io(std::io::Error::other(e)))?;
 
         let parsed: FabricModJson = serde_json::from_str(&contents)
             .map_err(|e| ModLoaderError::InvalidFormat(e.to_string()))?;
@@ -43,6 +44,7 @@ impl super::ModLoader for Fabric {
             parsed.id.clone(),
             parsed.name.unwrap_or(parsed.id),
             parsed.version,
+            parsed.description
         ))
     }
 }
