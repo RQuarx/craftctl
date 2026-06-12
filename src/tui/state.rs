@@ -1,14 +1,17 @@
-use crate::auth::LoginFlow;
+use crate::{auth::LoginFlow, http::HttpClient};
 
-#[derive(Debug, Default)]
-pub struct TuiState {
-    pub login: LoginFlow,
+#[derive(Debug)]
+pub struct TuiState<'a> {
+    pub login: LoginFlow<'a>,
     pub tick: usize,
 }
 
-impl TuiState {
-    pub fn new() -> Self {
-        Self::default()
+impl<'a> TuiState<'a> {
+    pub fn create(client: &'a HttpClient) -> Self {
+        Self {
+            login: LoginFlow::create(client),
+            tick: usize::default(),
+        }
     }
 
     pub async fn tick(&mut self) {

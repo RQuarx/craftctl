@@ -14,7 +14,7 @@ use super::terminal::AppTerminal;
 
 pub async fn run(
     terminal: &mut AppTerminal,
-    state: &mut TuiState,
+    state: &mut TuiState<'_>,
     should_quit: Arc<AtomicBool>,
 ) -> Result<()> {
     drain_startup_events()?;

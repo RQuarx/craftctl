@@ -1,10 +1,10 @@
 use std::time::{Duration, SystemTime};
 
-use reqwest::{Client, Response};
+use reqwest::Response;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
-use crate::{auth::Account, error::LauncherError, result::Result};
+use crate::{auth::Account, error::LauncherError, http::HttpClient, result::Result};
 
 const DEVICE_CODE_URL: &str = "https://login.live.com/oauth20_connect.srf";
 const TOKEN_URL: &str = "https://login.live.com/oauth20_token.srf";
@@ -16,14 +16,14 @@ const PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
 const SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
 
 #[derive(Debug, Clone)]
-pub struct MicrosoftAuth {
-    client: Client,
+pub struct MicrosoftAuth<'a> {
+    client: &'a HttpClient,
     client_id: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct MicrosoftLogin {
-    pub auth: MicrosoftAuth,
+pub struct MicrosoftLogin<'a> {
+    pub auth: MicrosoftAuth<'a>,
     pub device_code: DeviceCode,
 }
 
@@ -135,10 +135,10 @@ struct XstsProperties<'a> {
     user_tokens: [&'a str; 1],
 }
 
-impl MicrosoftAuth {
-    pub fn new(client_id: impl Into<String>) -> Self {
+impl<'a> MicrosoftAuth<'a> {
+    pub fn create(http: &'a HttpClient, client_id: impl Into<String>) -> Self {
         Self {
-            client: Client::new(),
+            client: http,
             client_id: client_id.into(),
         }
     }

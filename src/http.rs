@@ -1,7 +1,8 @@
 use std::time::Duration;
 
-use reqwest::{Client, Method, RequestBuilder, Response};
+use reqwest::{Client, Method, RequestBuilder};
 
+#[derive(Debug)]
 pub struct HttpClient {
     client: Client,
 }
@@ -25,11 +26,15 @@ impl HttpClient {
     }
 
     pub fn request(&self, method: Method, url: &str) -> RequestBuilder {
-        self.request(method, url)
+        self.client.request(method, url)
     }
 
-    pub async fn get(&self, url: &str) -> Result<Response, reqwest::Error> {
-        self.client.get(url).send().await
+    pub fn get(&self, url: &str) -> RequestBuilder {
+        self.request(Method::GET, url)
+    }
+
+    pub fn post(&self, url: &str) -> RequestBuilder {
+        self.request(Method::POST, url)
     }
 
     pub async fn get_json<T: serde::de::DeserializeOwned>(

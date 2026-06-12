@@ -5,11 +5,14 @@ use std::{
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::auth::{
-    Account,
-    browser::open,
-    create_offline_account,
-    microsoft::{MicrosoftAuth, MicrosoftLogin},
+use crate::{
+    auth::{
+        Account,
+        browser::open,
+        create_offline_account,
+        microsoft::{MicrosoftAuth, MicrosoftLogin},
+    },
+    http::HttpClient,
 };
 
 const DEFAULT_MICROSOFT_CLIENT_ID: &str = "00000000402b5328";
@@ -34,19 +37,22 @@ pub enum LoginClickTarget {
 }
 
 #[derive(Debug)]
-pub struct LoginFlow {
+pub struct LoginFlow<'a> {
+    client: &'a HttpClient,
+
     mode: LoginMode,
     phase: LoginPhase,
     username: String,
     account: Option<Account>,
     error: Option<String>,
-    login: Option<MicrosoftLogin>,
+    login: Option<MicrosoftLogin<'a>>,
     last_poll: Option<Instant>,
 }
 
-impl LoginFlow {
-    pub fn new() -> Self {
+impl<'a> LoginFlow<'a> {
+    pub fn create(client: &'a HttpClient) -> Self {
         Self {
+            client,
             mode: LoginMode::Microsoft,
             phase: LoginPhase::Choosing,
             username: String::new(),
@@ -249,7 +255,8 @@ impl LoginFlow {
     async fn start_microsoft_login(&mut self) {
         let client_id = env::var("CRAFTCTL_MICROSOFT_CLIENT_ID")
             .unwrap_or_else(|_| DEFAULT_MICROSOFT_CLIENT_ID.to_string());
-        let auth = MicrosoftAuth::new(client_id);
+
+        let auth = MicrosoftAuth::create(self.client, client_id);
 
         match auth.start_device_login().await {
             Ok(device_code) => {
@@ -277,11 +284,5 @@ impl LoginFlow {
             LoginMode::Microsoft => LoginMode::Offline,
             LoginMode::Offline => LoginMode::Microsoft,
         };
-    }
-}
-
-impl Default for LoginFlow {
-    fn default() -> Self {
-        Self::new()
     }
 }
