@@ -21,6 +21,14 @@ pub enum ProviderType {
 }
 
 #[derive(Debug)]
+pub enum DependencyType {
+    Required,
+    Optional,
+    Incompatible,
+    Embedded,
+}
+
+#[derive(Debug)]
 pub struct Project {
     pub provider: ProviderType,
 
@@ -31,12 +39,19 @@ pub struct Project {
     pub supported_versions: Vec<String>,
 }
 
+#[derive(Debug)]
+pub struct Dependency {
+    pub project_id: String,
+    pub dependency_type: DependencyType,
+}
+
 pub struct Version {
     pub id: String,
     pub version_number: String,
     pub game_versions: Vec<String>,
     pub loaders: Vec<String>,
-    pub files: Vec<File>
+    pub files: Vec<File>,
+    pub dependencies: Vec<Dependency>
 }
 
 pub struct File {

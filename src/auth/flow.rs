@@ -1,6 +1,5 @@
 use std::{
-    env,
-    time::{Duration, Instant},
+    env, sync::Arc, time::{Duration, Instant}
 };
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -37,20 +36,20 @@ pub enum LoginClickTarget {
 }
 
 #[derive(Debug)]
-pub struct LoginFlow<'a> {
-    client: &'a HttpClient,
+pub struct LoginFlow {
+    client: Arc<HttpClient>,
 
     mode: LoginMode,
     phase: LoginPhase,
     username: String,
     account: Option<Account>,
     error: Option<String>,
-    login: Option<MicrosoftLogin<'a>>,
+    login: Option<MicrosoftLogin>,
     last_poll: Option<Instant>,
 }
 
-impl<'a> LoginFlow<'a> {
-    pub fn create(client: &'a HttpClient) -> Self {
+impl LoginFlow {
+    pub fn create(client: Arc<HttpClient>) -> Self {
         Self {
             client,
             mode: LoginMode::Microsoft,
@@ -83,7 +82,7 @@ impl<'a> LoginFlow<'a> {
         self.error.as_deref()
     }
 
-    pub fn microsoft_login(&self) -> Option<&MicrosoftLogin<'_>> {
+    pub fn microsoft_login(&self) -> Option<&MicrosoftLogin> {
         self.login.as_ref()
     }
 
@@ -256,7 +255,7 @@ impl<'a> LoginFlow<'a> {
         let client_id = env::var("CRAFTCTL_MICROSOFT_CLIENT_ID")
             .unwrap_or_else(|_| DEFAULT_MICROSOFT_CLIENT_ID.to_string());
 
-        let auth = MicrosoftAuth::create(self.client, client_id);
+        let auth = MicrosoftAuth::create(self.client.clone(), client_id);
 
         match auth.start_device_login().await {
             Ok(device_code) => {

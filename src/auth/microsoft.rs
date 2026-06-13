@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use std::{sync::Arc, time::{Duration, SystemTime}};
 
 use reqwest::Response;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -16,14 +16,14 @@ const PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
 const SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
 
 #[derive(Debug, Clone)]
-pub struct MicrosoftAuth<'a> {
-    client: &'a HttpClient,
+pub struct MicrosoftAuth {
+    client: Arc<HttpClient>,
     client_id: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct MicrosoftLogin<'a> {
-    pub auth: MicrosoftAuth<'a>,
+pub struct MicrosoftLogin {
+    pub auth: MicrosoftAuth,
     pub device_code: DeviceCode,
 }
 
@@ -135,8 +135,8 @@ struct XstsProperties<'a> {
     user_tokens: [&'a str; 1],
 }
 
-impl<'a> MicrosoftAuth<'a> {
-    pub fn create(http: &'a HttpClient, client_id: impl Into<String>) -> Self {
+impl MicrosoftAuth {
+    pub fn create(http: Arc<HttpClient>, client_id: impl Into<String>) -> Self {
         Self {
             client: http,
             client_id: client_id.into(),

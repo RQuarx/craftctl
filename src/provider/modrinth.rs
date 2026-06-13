@@ -1,6 +1,11 @@
+use std::fmt::format;
+
 use serde::Deserialize;
 
-use crate::provider::{types::ProviderType, *};
+use crate::provider::{
+    types::{Dependency, DependencyType, ProviderType},
+    *,
+};
 
 struct ModrinthSearchQuery {
     pub query: String,
@@ -61,6 +66,13 @@ struct ModrinthProjectResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct ModrinthDependency {
+    project_id: Option<String>,
+    version_id: Option<String>,
+    dependency_type: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct ModrinthVersion {
     id: String,
 
@@ -71,6 +83,8 @@ struct ModrinthVersion {
     loaders: Vec<String>,
 
     files: Vec<ModrinthFile>,
+
+    dependencies: Vec<ModrinthDependency>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,19 +102,60 @@ struct ModrinthHashes {
     sha512: Option<String>,
 }
 
-pub struct Modrinth<'a> {
+struct ModrinthClient<'a> {
     client: &'a HttpClient,
+    base_url: String,
+}
+
+impl<'a> From<&'a HttpClient> for ModrinthClient<'a> {
+    fn from(client: &'a HttpClient) -> Self {
+        Self {
+            client,
+            base_url: "https://api.modrinth.com".into(),
+        }
+    }
+}
+
+impl<'a> ModrinthClient<'a> {
+    fn url(&self, path: &str) -> String {
+        format!("{}{}", self.base_url, path)
+    }
+}
+
+pub struct Modrinth<'a> {
+    client: ModrinthClient<'a>,
+}
+
+impl ModrinthDependency {
+    fn map(&self) -> Option<Dependency> {
+        let project_id = self.project_id.clone()?;
+
+        let dep_type = match self.dependency_type.as_str() {
+            "required" => DependencyType::Required,
+            "optional" => DependencyType::Optional,
+            "incompatible" => DependencyType::Incompatible,
+            "embedded" => DependencyType::Embedded,
+            _ => return None,
+        };
+
+        Some(Dependency {
+            project_id,
+            dependency_type: dep_type,
+        })
+    }
 }
 
 impl<'a> Provider<'a> for Modrinth<'a> {
     fn create(client: &'a HttpClient) -> Self {
-        Self { client }
+        Self {
+            client: client.into(),
+        }
     }
 
     async fn search(&self, filter: SearchFilter) -> Result<Vec<Project>, ProviderError> {
         let query = ModrinthSearchQuery::from_filter(&filter);
 
-        let mut url = reqwest::Url::parse("https://api.modrinth.com/v2/search")
+        let mut url = reqwest::Url::parse(&self.client.url("/v2/search"))
             .map_err(|e| ProviderError::InvalidFormat(e.to_string()))?;
 
         url.query_pairs_mut()
@@ -111,6 +166,7 @@ impl<'a> Provider<'a> for Modrinth<'a> {
             .append_pair("offset", &query.offset.to_string());
 
         let response: ModrinthSearchResponse = self
+            .client
             .client
             .get(url.as_str())
             .send()
@@ -137,10 +193,11 @@ impl<'a> Provider<'a> for Modrinth<'a> {
     }
 
     async fn get_project(&self, id: impl ToString) -> Result<Project, ProviderError> {
-        let url = format!("https://api.modrinth.com/v2/project/{}", id.to_string());
+        let path = format!("/v2/project/{}", id.to_string());
+        let url = self.client.url(&path);
 
         let project: ModrinthProjectResponse = self
-            .client
+            .client.client
             .get(&url)
             .send()
             .await
@@ -160,13 +217,11 @@ impl<'a> Provider<'a> for Modrinth<'a> {
     }
 
     async fn get_versions(&self, id: impl ToString) -> Result<Vec<Version>, ProviderError> {
-        let url = format!(
-            "https://api.modrinth.com/v2/project/{}/version",
-            id.to_string()
-        );
+        let path = format!("/v2/project/{}/version", id.to_string());
+        let url = self.client.url(&path);
 
         let versions: Vec<ModrinthVersion> = self
-            .client
+            .client.client
             .get(&url)
             .send()
             .await
@@ -193,10 +248,16 @@ impl<'a> Provider<'a> for Modrinth<'a> {
                         size: Some(file.size),
                     })
                     .collect(),
+                dependencies: version
+                    .dependencies
+                    .iter()
+                    .filter_map(|d| d.map())
+                    .collect(),
             })
             .collect())
     }
 }
+
 
 fn project_type_to_modrinth(t: &ProjectType) -> &'static str {
     match t {

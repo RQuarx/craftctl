@@ -1,21 +1,19 @@
-use std::collections::HashSet;
-
 use crate::provider::types::ProjectType;
 
 pub struct SearchFilter {
     pub query: String,
     pub project_type: Option<ProjectType>,
-    pub versions: HashSet<String>,
-    pub loaders: HashSet<String>,
+    pub versions: Vec<String>,
+    pub loaders: Vec<String>,
 }
 
 impl SearchFilter {
-    pub fn new(query: impl Into<String>) -> Self {
+    pub fn build(query: impl Into<String>) -> Self {
         Self {
             query: query.into(),
             project_type: None,
-            versions: HashSet::new(),
-            loaders: HashSet::new(),
+            versions: Vec::new(),
+            loaders: Vec::new(),
         }
     }
 
@@ -25,12 +23,12 @@ impl SearchFilter {
     }
 
     pub fn version(mut self, v: impl Into<String>) -> Self {
-        self.versions.insert(v.into());
+        self.versions.push(v.into());
         self
     }
 
     pub fn loader(mut self, l: impl Into<String>) -> Self {
-        self.loaders.insert(l.into());
+        self.loaders.push(l.into());
         self
     }
 }
