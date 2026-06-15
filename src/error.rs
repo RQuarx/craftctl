@@ -10,4 +10,16 @@ pub enum LauncherError {
 
     #[error("authentication error: {0}")]
     Auth(String),
+
+    #[error("config decode error: {0}")]
+    TomlDecode(#[from] toml::de::Error),
+
+    #[error("config encode error: {0}")]
+    TomlEncode(#[from] toml::ser::Error),
+
+    #[error("storage error: {0}")]
+    Storage(String),
+
+    #[error("invalid instance: {0}")]
+    InvalidInstance(String),
 }

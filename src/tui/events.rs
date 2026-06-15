@@ -24,16 +24,24 @@ pub async fn run(
             break;
         }
 
-        terminal.draw(|frame| tui::screens::login::draw(frame, state))?;
+        terminal.draw(|frame| match state.screen() {
+            tui::state::TuiScreen::Login => tui::screens::login::draw(frame, state),
+            tui::state::TuiScreen::Home => tui::screens::home::draw(frame, state),
+            tui::state::TuiScreen::Settings => tui::screens::settings::draw(frame, state),
+        })?;
 
         if event::poll(Duration::from_millis(80))? {
             match event::read()? {
                 Event::Key(key) if key.kind == KeyEventKind::Press => {
-                    if state.login.handle_key(key).await {
+                    if state.handle_key(key).await? {
                         break;
                     }
                 }
                 Event::Mouse(mouse) if mouse.kind == MouseEventKind::Down(MouseButton::Left) => {
+                    if !matches!(state.screen(), tui::state::TuiScreen::Login) {
+                        continue;
+                    }
+
                     let area = terminal.size()?.into();
                     if let Some(target) =
                         tui::screens::login::hit_test(area, mouse.column, mouse.row)
