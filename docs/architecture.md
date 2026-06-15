@@ -125,6 +125,14 @@ Responsibilities:
 - cleanly shut down the app
 ```
 
+Keep `app.rs` thin. If startup wiring grows beyond a few local bindings,
+move dependency construction into `app/` submodules such as `app/context.rs`.
+Those submodules are still part of the application coordination layer.
+
+Avoid passing a broad app context into lower layers unless they truly need it.
+Prefer building the context in `app`, then passing each module only the specific
+dependencies it uses.
+
 ### `error.rs`
 
 Defines the main launcher error type.
