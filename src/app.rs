@@ -3,15 +3,20 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-use crate::{config, http, instances, result::Result, tui};
+mod context;
+
+use context::AppContext;
+
+use crate::{result::Result, tui};
 
 pub async fn run() -> Result<()> {
-    let client = Arc::new(http::HttpClient::new()?);
-    let instance_manager = instances::InstanceManager::with_default_storage()?;
-    let config_manager = config::ConfigManager::with_default_storage()?;
-    let launcher_config = config_manager.load()?;
-    let mut state =
-        tui::state::TuiState::create(client, instance_manager, config_manager, launcher_config)?;
+    let context = AppContext::load()?;
+    let mut state = tui::state::TuiState::create(
+        context.client,
+        context.instance_manager,
+        context.config_manager,
+        context.launcher_config,
+    )?;
 
     let mut terminal = tui::terminal::init()?;
     let should_quit = Arc::new(AtomicBool::new(false));
